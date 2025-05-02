@@ -1,10 +1,8 @@
-// Add type declaration for better-sqlite3
-declare module 'better-sqlite3';
+// Client-side database service using localStorage instead of SQLite
+// This solves the Node.js dependency issues when running in the browser
 
-import Database from 'better-sqlite3';
-import path from 'path';
+import initializeData from './initData';
 
-// Types that match your current data structure
 export interface User {
   id: number;
   name: string;
@@ -21,94 +19,120 @@ export interface Question {
   wrongAnswers: string[];
 }
 
-// Database question structure
-interface DBQuestion {
-  id: number;
-  user_id: number;
-  question_text: string;
-  correct_answer: string;
-  wrong_answers: string;
-}
-
 export interface SiteConfig {
   [key: string]: string;
 }
 
+// Sample data to use when no localStorage data is available
+const SAMPLE_DATA = {
+  "users": [
+    {
+      "id": 1,
+      "name": "Brandon",
+      "nickname": "big b",
+      "title": "Best Man",
+      "password": "uniquePassword1",
+      "questions": [
+        {
+          "id": 1,
+          "text": "When did we first meet?",
+          "correctAnswer": "College",
+          "wrongAnswers": ["High School", "Work", "Through Friends"]
+        },
+        {
+          "id": 2,
+          "text": "What was our favorite hangout spot?",
+          "correctAnswer": "Joe's Diner",
+          "wrongAnswers": ["Campus Library", "The Park", "Mike's Apartment"]
+        }
+      ]
+    }
+  ],
+  "errorMessages": [
+    "nah",
+    "wrong",
+    "bye",
+    "go away",
+    "nty",
+    "STOP PLEASE IT HURTS MY EYES",
+    "no",
+    "try again"
+  ],
+  "siteConfig": {
+    "successMessage": "AUTHENTICATION SUCCESSFUL. WELCOME [TITLE] [NAME].",
+    "restartButtonText": "START OVER",
+    "nextButtonText": "NEXT QUESTION",
+    "progressLabel": "QUESTION [CURRENT]/[TOTAL]"
+  }
+};
+
 class DBService {
-  private db: Database;
+  private data: any;
   
   constructor() {
-    // In production, DB will be in the build directory
-    const dbPath = process.env.NODE_ENV === 'production'
-      ? path.resolve('./db/groomsmen.sqlite')
-      : path.resolve('./src/db/groomsmen.sqlite');
-    
-    this.db = new Database(dbPath);
+    this.initializeData();
+  }
+  
+  private initializeData() {
+    try {
+      // Use the initialization utility to load data from the JSON file
+      // This will also check localStorage first
+      const data = initializeData();
+      
+      if (data) {
+        this.data = data;
+      } else {
+        // Fallback to sample data if initializing from JSON fails
+        this.data = SAMPLE_DATA;
+        // Store it in localStorage for future use
+        localStorage.setItem('groomsmenData', JSON.stringify(this.data));
+      }
+    } catch (error) {
+      console.error('Error initializing data:', error);
+      // Fallback to sample data if there's an error
+      this.data = SAMPLE_DATA;
+    }
   }
   
   // Get all users with their questions
   getAllUsers(): User[] {
-    const users = this.db.prepare('SELECT * FROM users').all() as User[];
-    
-    return users.map(user => {
-      const questions = this.db.prepare('SELECT * FROM questions WHERE user_id = ?').all(user.id) as DBQuestion[];
-      
-      // Map database field names to our interface
-      const formattedQuestions = questions.map((q: DBQuestion) => ({
-        id: q.id,
-        text: q.question_text,
-        correctAnswer: q.correct_answer,
-        wrongAnswers: JSON.parse(q.wrong_answers)
-      }));
-      
-      return {
-        ...user,
-        questions: formattedQuestions
-      };
-    });
+    try {
+      return this.data.users || [];
+    } catch (error) {
+      console.error('Error getting users:', error);
+      return [];
+    }
   }
   
   // Get a single user by password
   getUserByPassword(password: string): User | null {
-    const user = this.db.prepare('SELECT * FROM users WHERE password = ?').get(password) as User | undefined;
-    
-    if (!user) return null;
-    
-    const questions = this.db.prepare('SELECT * FROM questions WHERE user_id = ?').all(user.id) as DBQuestion[];
-    
-    // Map database field names to our interface
-    const formattedQuestions = questions.map((q: DBQuestion) => ({
-      id: q.id,
-      text: q.question_text,
-      correctAnswer: q.correct_answer,
-      wrongAnswers: JSON.parse(q.wrong_answers)
-    }));
-    
-    return {
-      ...user,
-      questions: formattedQuestions
-    };
+    try {
+      const user = this.data.users.find((u: User) => u.password === password);
+      return user || null;
+    } catch (error) {
+      console.error('Error getting user by password:', error);
+      return null;
+    }
   }
   
   // Get site configuration
   getSiteConfig(): SiteConfig {
-    const configs = this.db.prepare('SELECT * FROM site_config').all() as { key: string; value: string }[];
-    
-    return configs.reduce((acc, config) => {
-      acc[config.key] = config.value;
-      return acc;
-    }, {} as SiteConfig);
+    try {
+      return this.data.siteConfig || {};
+    } catch (error) {
+      console.error('Error getting site config:', error);
+      return {};
+    }
   }
   
   // Get error messages
   getErrorMessages(): string[] {
-    const messages = this.db.prepare('SELECT message FROM error_messages').all() as { message: string }[];
-    return messages.map(m => m.message);
-  }
-  
-  // Close the database connection
-  close(): void {
-    this.db.close();
+    try {
+      return this.data.errorMessages || [];
+    } catch (error) {
+      console.error('Error getting error messages:', error);
+      return [];
+    }
   }
 }
 

@@ -85,28 +85,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     errorMessage: ''
   });
 
-  // Load data from SQLite on component mount
+  // Load data on component mount
   useEffect(() => {
     try {
       // Get all users with their questions
       const dbUsers = dbService.getAllUsers();
       
-      // Map DB users to our User type
-      const formattedUsers: User[] = dbUsers.map(dbUser => ({
-        id: dbUser.id,
-        name: dbUser.name,
-        nickname: dbUser.nickname,
-        title: dbUser.title,
-        password: dbUser.password,
-        questions: dbUser.questions?.map(q => ({
-          id: q.id,
-          text: q.text,
-          correctAnswer: q.correctAnswer,
-          wrongAnswers: q.wrongAnswers
-        })) || []
-      }));
-      
-      setUsers(formattedUsers);
+      if (dbUsers && dbUsers.length > 0) {
+        // Map DB users to ensure questions is not undefined
+        const formattedUsers: User[] = dbUsers.map(dbUser => ({
+          id: dbUser.id,
+          name: dbUser.name,
+          nickname: dbUser.nickname,
+          title: dbUser.title,
+          password: dbUser.password,
+          questions: dbUser.questions || []
+        }));
+        setUsers(formattedUsers);
+      }
       
       // Get site config
       const dbConfig = dbService.getSiteConfig();
@@ -123,8 +119,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setErrorMessages(dbErrorMessages);
       }
     } catch (error) {
-      console.error('Failed to load data from database:', error);
-      // If DB fails, we'll use default values
+      console.error('Failed to load data:', error);
+      // If loading fails, we'll use default values
     }
   }, []);
 
@@ -139,23 +135,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     try {
-      // Get user by password from DB
+      // Get user by password
       const user = dbService.getUserByPassword(password);
       
       if (user) {
-        // Format the user to match our User type
+        // Ensure questions is not undefined
         const formattedUser: User = {
           id: user.id,
           name: user.name,
           nickname: user.nickname,
           title: user.title,
           password: user.password,
-          questions: user.questions?.map(q => ({
-            id: q.id,
-            text: q.text,
-            correctAnswer: q.correctAnswer,
-            wrongAnswers: q.wrongAnswers
-          })) || []
+          questions: user.questions || []
         };
         
         setState(prev => ({
@@ -234,7 +225,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         ...prev,
         background: 'dither'
       }));
-    }, 1500);
+    }, 3500);
   };
 
   const setBackground = (background: BackgroundType) => {

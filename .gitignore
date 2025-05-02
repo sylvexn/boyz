@@ -25,7 +25,7 @@ yarn-error.log*
 # SQLite database files
 *.sqlite
 *.sqlite3
-*.db 
+*.db
 
 site-theme.json
 groomsmen-data.json
