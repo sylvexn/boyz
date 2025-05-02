@@ -159,7 +159,7 @@ const QuestionnaireScreen: React.FC = () => {
                       <DecryptedText
                         key={`question-${currentQuestionIndex}`}
                         text={currentQuestion.text}
-                        speed={80} // Slowed down for better visibility
+                        speed={40} // Slowed down for better visibility
                         maxIterations={30}
                         sequential={true}
                         characters="!@#$%^&*()_+-=[]{}|;:,./<>?"

@@ -5,7 +5,6 @@ import Aurora from '../backgrounds/Aurora/Aurora';
 import ClickSpark from '../animations/ClickSpark/ClickSpark';
 import FadeContent from '../animations/FadeContent/FadeContent';
 import MetaBalls from '../animations/MetaBalls/MetaBalls';
-import GlitchText from '../textanimations/GlitchText/GlitchText';
 
 const AuthScreen: React.FC = () => {
   const [password, setPassword] = useState('');

@@ -13,6 +13,7 @@
     "@types/react": "^18.2.21",
     "@types/react-dom": "^18.2.7",
     "@types/three": "^0.156.0",
+    "better-sqlite3": "^11.9.1",
     "framer-motion": "^11.18.2",
     "gsap": "^3.13.0",
     "ogl": "^1.0.11",
