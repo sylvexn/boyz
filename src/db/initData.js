@@ -2,7 +2,7 @@
 // to initialize our application data in a browser-compatible way
 
 // Import the sample data directly - webpack will bundle this
-import groomsmenData from '../../groomsmen-data.json';
+import groomsmenData from '../groomsmen-data.json';
 
 // Transform the data to match the format expected by our application
 export function initializeData() {
