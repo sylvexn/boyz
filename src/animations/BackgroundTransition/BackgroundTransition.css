@@ -1,0 +1,28 @@
+/*
+  Installed from https://reactbits.dev/ts/default/
+*/
+
+.background-transition-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.background-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transition-property: opacity;
+  transition-timing-function: ease-in-out;
+}
+
+.background-layer.current {
+  z-index: 1;
+}
+
+.background-layer.previous {
+  z-index: 0;
+} 

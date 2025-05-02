@@ -2,12 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import DecryptedText from '../textanimations/DecryptedText/DecryptedText';
 import ClickSpark from '../animations/ClickSpark/ClickSpark';
-import FadeContent from '../animations/FadeContent/FadeContent';
 import GlitchText from '../textanimations/GlitchText/GlitchText';
 import FuzzyText from '../textanimations/FuzzyText/FuzzyText';
 
 const QuestionnaireScreen: React.FC = () => {
-  const { state, answerQuestion, siteConfig } = useApp();
+  const { state, answerQuestion, resetQuestionnaire, siteConfig } = useApp();
   const { currentUser, currentQuestionIndex, isLoading } = state;
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -15,6 +14,16 @@ const QuestionnaireScreen: React.FC = () => {
   const [questionVisible, setQuestionVisible] = useState(true);
   const [showWrongFuzz, setShowWrongFuzz] = useState(false);
   const [randomizedOptions, setRandomizedOptions] = useState<string[]>([]);
+  const [questionKey, setQuestionKey] = useState<string>(`question-${currentQuestionIndex}-initial`);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isInitialRender, setIsInitialRender] = useState(true);
+  
+  // On component mount, mark that we've completed initial render
+  useEffect(() => {
+    if (isInitialRender) {
+      setIsInitialRender(false);
+    }
+  }, [isInitialRender]);
   
   // Memoize the current question to avoid recreating it
   const currentQuestion = useMemo(() => {
@@ -35,19 +44,24 @@ const QuestionnaireScreen: React.FC = () => {
     const shuffled = [...optionsArray].sort(() => Math.random() - 0.5);
     setRandomizedOptions(shuffled);
     
-    // Reset animation states
-    setQuestionVisible(false);
-    setShowWrongFuzz(false);
-    setSelectedAnswer(null);
-    setShowFeedback(false);
-    
-    // Small delay before showing new question to ensure animation resets
-    const timer = setTimeout(() => {
-      setQuestionVisible(true);
-    }, 300);
-    
-    return () => clearTimeout(timer);
-  }, [currentQuestionIndex, currentQuestion]);
+    // Skip animation on initial render to avoid double loading
+    if (!isInitialRender && questionKey !== `question-${currentQuestionIndex}-initial`) {
+      // Update the question key to force re-rendering
+      setQuestionKey(`question-${currentQuestionIndex}-${Date.now()}`);
+      
+      // Reset states on question change
+      setShowWrongFuzz(false);
+      setSelectedAnswer(null);
+      setShowFeedback(false);
+      setIsTransitioning(false);
+      
+      // Only animate transitions for non-initial renders
+      setQuestionVisible(false);
+      setTimeout(() => {
+        setQuestionVisible(true);
+      }, 50);
+    }
+  }, [currentQuestionIndex, currentQuestion, questionKey, isInitialRender]);
 
   if (!currentUser || !currentQuestion) return null;
 
@@ -56,26 +70,45 @@ const QuestionnaireScreen: React.FC = () => {
     .replace('[TOTAL]', currentUser.questions.length.toString());
 
   const handleAnswerClick = (answer: string) => {
+    if (isTransitioning) return; // Prevent multiple clicks during transitions
+    
     setSelectedAnswer(answer);
     setShowFeedback(true);
+    setIsTransitioning(true);
     
     // Check if answer is correct
     const correct = currentQuestion.correctAnswer === answer;
     setIsCorrect(correct);
     
-    if (!correct) {
-      // If the answer is wrong, show the fuzzy effect
+    if (correct) {
+      // For correct answers: show green feedback, then proceed
+      setTimeout(() => {
+        answerQuestion(answer);
+        setIsTransitioning(false);
+      }, 800);
+    } else {
+      // For wrong answers: show fuzzy text, fade out, then reset to question 1
       setShowWrongFuzz(true);
       
-      // Show feedback for longer (1200ms) before going back to question 1
+      // Begin fade out after 500ms (halfway through the 1s feedback period)
       setTimeout(() => {
-        answerQuestion(answer);
-      }, 1200);
-    } else {
-      // Show feedback for 800ms before proceeding to next question
+        setQuestionVisible(false);
+      }, 500);
+      
+      // After 1s total (feedback time), reset to question 1
       setTimeout(() => {
-        answerQuestion(answer);
-      }, 800);
+        resetQuestionnaire();
+        setShowWrongFuzz(false);
+        setShowFeedback(false);
+        setSelectedAnswer(null);
+        
+        // Brief delay to ensure state updates process
+        setTimeout(() => {
+          setQuestionKey(`reset-${Date.now()}`);
+          setQuestionVisible(true);
+          setIsTransitioning(false);
+        }, 50);
+      }, 1000);
     }
   };
 
@@ -121,10 +154,11 @@ const QuestionnaireScreen: React.FC = () => {
           </div>
         ) : (
           <div className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
-            <FadeContent 
-              delay={200}
-              duration={800}
-              key={`fade-${currentQuestionIndex}`}
+            <div 
+              style={{
+                opacity: questionVisible ? 1 : 0,
+                transition: 'opacity 500ms ease-out', // Consistently 0.5s fade transition
+              }}
             >
               <div>
                 <p 
@@ -141,31 +175,27 @@ const QuestionnaireScreen: React.FC = () => {
                 <div style={{ 
                   marginBottom: '2rem', 
                   minHeight: '60px',
-                  transition: 'opacity 0.3s ease',
-                  opacity: questionVisible ? 1 : 0
                 }}>
-                  {questionVisible && (
-                    showWrongFuzz ? (
-                      <div style={{ textAlign: 'center', fontSize: '1.2rem' }}>
-                        <FuzzyText 
-                          color="#ff4d4d"
-                          baseIntensity={0.4}
-                          fontSize="1.2rem"
-                        >
-                          {currentQuestion.text}
-                        </FuzzyText>
-                      </div>
-                    ) : (
-                      <DecryptedText
-                        key={`question-${currentQuestionIndex}`}
-                        text={currentQuestion.text}
-                        speed={40} // Slowed down for better visibility
-                        maxIterations={30}
-                        sequential={true}
-                        characters="!@#$%^&*()_+-=[]{}|;:,./<>?"
-                        animateOn="view"
-                      />
-                    )
+                  {showWrongFuzz ? (
+                    <div style={{ textAlign: 'center', fontSize: '1.2rem' }}>
+                      <FuzzyText 
+                        color="#ff4d4d"
+                        baseIntensity={0.4}
+                        fontSize="1.2rem"
+                      >
+                        {currentQuestion.text}
+                      </FuzzyText>
+                    </div>
+                  ) : (
+                    <DecryptedText
+                      key={questionKey}
+                      text={currentQuestion.text}
+                      speed={40} 
+                      maxIterations={30}
+                      sequential={true}
+                      characters="!@#$%^&*()_+-=[]{}|;:,./<>?"
+                      animateOn="view"
+                    />
                   )}
                 </div>
                 
@@ -175,13 +205,11 @@ const QuestionnaireScreen: React.FC = () => {
                     gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                     gap: '1rem',
                     marginTop: '2rem',
-                    transition: 'opacity 0.3s ease',
-                    opacity: questionVisible ? 1 : 0
                   }}
                 >
-                  {questionVisible && randomizedOptions.map((option, index) => (
+                  {randomizedOptions.map((option, index) => (
                     <ClickSpark
-                      key={`option-${currentQuestionIndex}-${index}`}
+                      key={`${questionKey}-option-${index}`}
                       sparkColor="#00ff7f"
                       sparkSize={5}
                       sparkCount={8}
@@ -213,7 +241,7 @@ const QuestionnaireScreen: React.FC = () => {
                   ))}
                 </div>
               </div>
-            </FadeContent>
+            </div>
           </div>
         )}
       </div>

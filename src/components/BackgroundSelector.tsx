@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import LetterGlitch from '../backgrounds/LetterGlitch/LetterGlitch';
 import GridDistortion from '../backgrounds/GridDistortion/GridDistortion';
 import Dither from '../backgrounds/Dither/Dither';
 import Balatro from '../backgrounds/Balatro/Balatro';
+import BackgroundTransition from '../animations/BackgroundTransition/BackgroundTransition';
 
 // Path to grid image used for GridDistortion
 const gridImagePath = '/images/grid-pattern.svg';
@@ -11,9 +12,36 @@ const gridImagePath = '/images/grid-pattern.svg';
 const BackgroundSelector: React.FC = () => {
   const { state } = useApp();
   const { background } = state;
+  
+  const [prevBackground, setPrevBackground] = useState<string | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  
+  // When background changes, trigger transition
+  useEffect(() => {
+    if (prevBackground && prevBackground !== background) {
+      setIsTransitioning(true);
+      
+      // Reset transition state after animation completes
+      const timeout = setTimeout(() => {
+        setIsTransitioning(false);
+      }, 1500); // Match transition duration
+      
+      return () => clearTimeout(timeout);
+    } else if (prevBackground === null) {
+      // First render, set initial background without transition
+      setPrevBackground(background);
+    }
+  }, [background, prevBackground]);
+  
+  // Update previous background after transition completes
+  useEffect(() => {
+    if (!isTransitioning && prevBackground !== background) {
+      setPrevBackground(background);
+    }
+  }, [isTransitioning, background, prevBackground]);
 
-  const renderBackground = () => {
-    switch (background) {
+  const renderBackgroundComponent = (bgType: string) => {
+    switch (bgType) {
       case 'letterglitch':
         return (
           <LetterGlitch 
@@ -73,7 +101,12 @@ const BackgroundSelector: React.FC = () => {
         overflow: 'hidden'
       }}
     >
-      {renderBackground()}
+      <BackgroundTransition
+        currentBackground={renderBackgroundComponent(background)}
+        previousBackground={prevBackground ? renderBackgroundComponent(prevBackground) : undefined}
+        isTransitioning={isTransitioning}
+        transitionDuration={1500}
+      />
     </div>
   );
 };

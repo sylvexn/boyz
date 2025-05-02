@@ -8,7 +8,7 @@ import MetaBalls from '../animations/MetaBalls/MetaBalls';
 
 const AuthScreen: React.FC = () => {
   const [password, setPassword] = useState('');
-  const { state, authenticate, setBackground } = useApp();
+  const { state, authenticate } = useApp();
   const { isLoading, showLoginError, errorMessage } = state;
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -20,11 +20,7 @@ const AuthScreen: React.FC = () => {
     
     if (!password.trim()) return;
     
-    // While loading, show the GridDistortion background
-    if (!isLoading) {
-      setBackground('griddistortion');
-    }
-    
+    // We let the authenticate function handle background changes
     await authenticate(password);
   };
 

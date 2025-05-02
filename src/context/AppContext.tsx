@@ -144,14 +144,57 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setState(prev => ({
       ...prev,
       isLoading: true,
-      showLoginError: false
+      showLoginError: false,
+      background: 'griddistortion'
     }));
 
     // Simulate network request
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     try {
-      // Get user by password
+      // Special test bypass password
+      if (password.toLowerCase() === 'cheese') {
+        // Create fake test user
+        const fakeUser: User = {
+          id: 9999,
+          name: "Test User",
+          nickname: "tester",
+          title: "test account",
+          password: "cheese",
+          questions: [
+            {
+              id: 9001,
+              text: "Lorem ipsum dolor sit amet?",
+              correctAnswer: "Yes",
+              wrongAnswers: ["No", "Maybe", "Sometimes"]
+            },
+            {
+              id: 9002,
+              text: "Consectetur adipiscing elit?",
+              correctAnswer: "Absolutely",
+              wrongAnswers: ["Never", "Occasionally", "Rarely"]
+            },
+            {
+              id: 9003,
+              text: "Sed do eiusmod tempor incididunt?",
+              correctAnswer: "Confirmed",
+              wrongAnswers: ["Denied", "Unknown", "Uncertain"]
+            }
+          ]
+        };
+        
+        setState(prev => ({
+          ...prev,
+          isAuthenticated: true,
+          currentUser: fakeUser,
+          isLoading: false,
+          background: 'dither'
+        }));
+        
+        return true;
+      }
+      
+      // Regular authentication flow
       const user = dbService.getUserByPassword(password);
       
       if (user) {
@@ -180,7 +223,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           ...prev,
           isLoading: false,
           showLoginError: true,
-          errorMessage: randomError
+          errorMessage: randomError,
+          background: 'letterglitch'
         }));
         
         return false;
@@ -191,7 +235,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         ...prev,
         isLoading: false,
         showLoginError: true,
-        errorMessage: "an error occurred. please try again."
+        errorMessage: "an error occurred. please try again.",
+        background: 'letterglitch'
       }));
       
       return false;
@@ -235,13 +280,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       background: 'balatro'
     }));
     
-    // Add short delay to show loading screen
-    setTimeout(() => {
-      setState(prev => ({
-        ...prev,
-        background: 'dither'
-      }));
-    }, 3500);
+    // No longer need to switch back to dither
+    // The BackgroundTransition component will handle the smooth transition
   };
 
   const setBackground = (background: BackgroundType) => {

@@ -16,13 +16,46 @@ const SuccessScreen: React.FC = () => {
     .replace('[TITLE]', currentUser.title.toLowerCase())
     .replace('[NAME]', currentUser.name.toLowerCase());
     
+  // Check if current user is test user
+  const isTestUser = currentUser.password === 'cheese';
+  
   // Create wedding party menu items with nickname shown by default, name on hover
-  const weddingPartyItems = users.map(user => ({
+  let weddingPartyItems = users.map(user => ({
     text: `${user.nickname} - ${user.title}`.toLowerCase(),
     hoverText: `${user.name} - ${user.title}`.toLowerCase(),
     link: '#', // We're not using actual links
     image: '/images/user-avatar.svg'
   }));
+  
+  // If test user, create fake wedding party
+  if (isTestUser) {
+    weddingPartyItems = [
+      {
+        text: "tester - test account".toLowerCase(),
+        hoverText: "Test User - test account".toLowerCase(),
+        link: '#',
+        image: '/images/user-avatar.svg'
+      },
+      {
+        text: "best1 - best man".toLowerCase(),
+        hoverText: "Best Man 1 - best man".toLowerCase(),
+        link: '#',
+        image: '/images/user-avatar.svg'
+      },
+      {
+        text: "gman - groomsman".toLowerCase(),
+        hoverText: "Groomsman Guy - groomsman".toLowerCase(),
+        link: '#',
+        image: '/images/user-avatar.svg'
+      },
+      {
+        text: "ring - ring bearer".toLowerCase(),
+        hoverText: "Ring Bearer - ring bearer".toLowerCase(),
+        link: '#',
+        image: '/images/user-avatar.svg'
+      }
+    ];
+  }
 
   return (
     <div className="centered">
@@ -39,8 +72,8 @@ const SuccessScreen: React.FC = () => {
         }}>
           <ASCIIText
             text={currentUser.nickname}
-            asciiFontSize={8}
-            textFontSize={70}
+            asciiFontSize={10}
+            textFontSize={60}
             textColor="#00ff7f"
             enableWaves={true}
           />
@@ -63,6 +96,11 @@ const SuccessScreen: React.FC = () => {
             <div style={{ textAlign: 'center' }}>
               <p>thanks for being a part of this special day.</p>
               <p style={{ marginTop: '1rem' }}>more details to come for the bachelor party and more.</p>
+              {isTestUser && (
+                <p style={{ marginTop: '1rem', color: '#00ff7f' }}>
+                  ** test mode active **
+                </p>
+              )}
             </div>
           </FadeContent>
         </div>
