@@ -62,7 +62,7 @@ const SuccessScreen: React.FC = () => {
             
             <div style={{ textAlign: 'center' }}>
               <p>thanks for being a part of this special day.</p>
-              <p style={{ marginTop: '1rem' }}>more details to come at the rehearsal dinner.</p>
+              <p style={{ marginTop: '1rem' }}>more details to come for the bachelor party and more.</p>
             </div>
           </FadeContent>
         </div>
