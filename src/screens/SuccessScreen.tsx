@@ -39,8 +39,8 @@ const SuccessScreen: React.FC = () => {
         }}>
           <ASCIIText
             text={currentUser.nickname}
-            asciiFontSize={10}
-            textFontSize={80}
+            asciiFontSize={8}
+            textFontSize={70}
             textColor="#00ff7f"
             enableWaves={true}
           />
