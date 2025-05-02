@@ -1,14 +1,84 @@
+/**
+ * This script sets up the initial database for the application.
+ * Run this script once to initialize the database from the groomsmen-data.json file.
+ * 
+ * The database file is stored in src/db/groomsmen.sqlite and should be gitignored.
+ * 
+ * Usage:
+ * - Make sure better-sqlite3 is installed: npm install better-sqlite3
+ * - Run: node src/db/setup.js
+ */
+
 const Database = require('better-sqlite3');
 const fs = require('fs');
 const path = require('path');
 
-// Create database file
-const db = new Database('src/db/groomsmen.sqlite');
+// Paths
+const DB_PATH = path.join(__dirname, 'groomsmen.sqlite');
+const DATA_PATH = path.join(__dirname, 'groomsmen-data.json');
 
-// Read current user data
-const userData = JSON.parse(fs.readFileSync(path.join(__dirname, '../../groomsmen-data.json'), 'utf8'));
+console.log('Setting up the database...');
 
-// Create users table
+// Check if the JSON data file exists
+if (!fs.existsSync(DATA_PATH)) {
+  console.error(`Error: ${DATA_PATH} does not exist!`);
+  console.log(`Please create a groomsmen-data.json file in the src/db directory with the following structure:
+  
+{
+  "users": [
+    {
+      "name": "Full Name",
+      "nickname": "Nickname",
+      "title": "Position (e.g., Best Man)",
+      "password": "unique-password",
+      "questions": [
+        {
+          "question": "Question text?",
+          "answer": "Correct answer",
+          "options": ["Wrong answer 1", "Correct answer", "Wrong answer 2", "Wrong answer 3"]
+        },
+        // More questions...
+      ]
+    },
+    // More users...
+  ],
+  "errorMessages": [
+    "Error message 1",
+    "Error message 2",
+    // More error messages...
+  ],
+  "siteConfig": {
+    "successMessage": "AUTHENTICATION SUCCESSFUL. WELCOME [TITLE] [NAME].",
+    "restartButtonText": "START OVER",
+    "nextButtonText": "NEXT QUESTION",
+    "progressLabel": "QUESTION [CURRENT]/[TOTAL]"
+  }
+}
+  `);
+  process.exit(1);
+}
+
+// If database already exists, confirm before overwriting
+if (fs.existsSync(DB_PATH)) {
+  console.warn(`Warning: ${DB_PATH} already exists!`);
+  console.log('Removing existing database...');
+  fs.unlinkSync(DB_PATH);
+}
+
+// Create the database
+const db = new Database(DB_PATH);
+
+// Read user data from JSON
+let userData;
+try {
+  const fileData = fs.readFileSync(DATA_PATH, 'utf8');
+  userData = JSON.parse(fileData);
+} catch (error) {
+  console.error('Error reading or parsing groomsmen-data.json:', error);
+  process.exit(1);
+}
+
+// Create required tables
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -19,7 +89,6 @@ db.exec(`
   )
 `);
 
-// Create questions table
 db.exec(`
   CREATE TABLE IF NOT EXISTS questions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,7 +100,6 @@ db.exec(`
   )
 `);
 
-// Create site_config table
 db.exec(`
   CREATE TABLE IF NOT EXISTS site_config (
     key TEXT PRIMARY KEY,
@@ -39,7 +107,6 @@ db.exec(`
   )
 `);
 
-// Create error_messages table
 db.exec(`
   CREATE TABLE IF NOT EXISTS error_messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -89,7 +156,15 @@ const transaction = db.transaction(() => {
 });
 
 // Run transaction
-transaction();
-
-console.log('Database setup complete!');
-db.close(); 
+try {
+  transaction();
+  console.log('✅ Database setup complete! Path:', DB_PATH);
+  console.log(`
+Add this file to your .gitignore:
+src/db/groomsmen.sqlite
+`);
+} catch (error) {
+  console.error('❌ Database setup failed:', error);
+} finally {
+  db.close();
+} 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
 import ShinyText from '../textanimations/ShinyText/ShinyText';
+import ASCIIText from '../textanimations/ASCIIText/ASCIIText';
 import ScrollVelocity from '../textanimations/ScrollVelocity/ScrollVelocity';
 import FadeContent from '../animations/FadeContent/FadeContent';
 import FlowingMenu from '../components/FlowingMenu/FlowingMenu';
@@ -12,13 +13,13 @@ const SuccessScreen: React.FC = () => {
   if (!currentUser) return null;
 
   const welcomeMessage = siteConfig.successMessage
-    .replace('[title]', currentUser.title)
-    .replace('[name]', currentUser.name);
+    .replace('[TITLE]', currentUser.title.toLowerCase())
+    .replace('[NAME]', currentUser.name.toLowerCase());
     
   // Create wedding party menu items with nickname shown by default, name on hover
   const weddingPartyItems = users.map(user => ({
-    text: `${user.nickname} - ${user.title}`,
-    hoverText: `${user.name} - ${user.title}`,
+    text: `${user.nickname} - ${user.title}`.toLowerCase(),
+    hoverText: `${user.name} - ${user.title}`.toLowerCase(),
     link: '#', // We're not using actual links
     image: '/images/user-avatar.svg'
   }));
@@ -26,18 +27,22 @@ const SuccessScreen: React.FC = () => {
   return (
     <div className="centered">
       <div className="container">
-        <div style={{ marginBottom: '4.5rem', textAlign: 'center' }}>
-          <ScrollVelocity
-            texts={[`${currentUser.nickname} ✖`]}
-            velocity={50}
-            className="velocity-text"
-            parallaxStyle={{ 
-              color: '#00ff7f',
-              fontWeight: 'bold',
-              fontSize: '3rem',
-              textTransform: 'lowercase',
-              overflow: 'hidden'
-            }}
+        {/* Large ASCII text nickname takes center stage */}
+        <div style={{ 
+          marginBottom: '3rem', 
+          marginTop: '1rem', 
+          textAlign: 'center',
+          minHeight: '200px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <ASCIIText
+            text={currentUser.nickname}
+            asciiFontSize={10}
+            textFontSize={80}
+            textColor="#00ff7f"
+            enableWaves={true}
           />
         </div>
         

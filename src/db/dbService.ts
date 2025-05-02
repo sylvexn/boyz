@@ -1,7 +1,7 @@
-// Client-side database service using localStorage instead of SQLite
-// This solves the Node.js dependency issues when running in the browser
+// Client-side database service using a singleton for in-memory storage
+// This avoids localStorage and provides a consistent API
 
-import initializeData from './initData';
+import { initializeDatabase } from './initData';
 
 export interface User {
   id: number;
@@ -23,117 +23,94 @@ export interface SiteConfig {
   [key: string]: string;
 }
 
-// Sample data to use when no localStorage data is available
-const SAMPLE_DATA = {
-  "users": [
-    {
-      "id": 1,
-      "name": "Brandon",
-      "nickname": "big b",
-      "title": "Best Man",
-      "password": "uniquePassword1",
-      "questions": [
-        {
-          "id": 1,
-          "text": "When did we first meet?",
-          "correctAnswer": "College",
-          "wrongAnswers": ["High School", "Work", "Through Friends"]
-        },
-        {
-          "id": 2,
-          "text": "What was our favorite hangout spot?",
-          "correctAnswer": "Joe's Diner",
-          "wrongAnswers": ["Campus Library", "The Park", "Mike's Apartment"]
-        }
-      ]
-    }
-  ],
-  "errorMessages": [
-    "nah",
-    "wrong",
-    "bye",
-    "go away",
-    "nty",
-    "STOP PLEASE IT HURTS MY EYES",
-    "no",
-    "try again"
-  ],
-  "siteConfig": {
-    "successMessage": "AUTHENTICATION SUCCESSFUL. WELCOME [TITLE] [NAME].",
-    "restartButtonText": "START OVER",
-    "nextButtonText": "NEXT QUESTION",
-    "progressLabel": "QUESTION [CURRENT]/[TOTAL]"
-  }
-};
+// Define the database structure interface
+export interface DatabaseData {
+  users: User[];
+  siteConfig: SiteConfig;
+  errorMessages: string[];
+}
 
-class DBService {
-  private data: any;
-  
-  constructor() {
-    this.initializeData();
+// In-memory database singleton
+class Database {
+  private static instance: Database;
+  private users: User[] = [];
+  private siteConfig: SiteConfig = {};
+  private errorMessages: string[] = [];
+  private initialized: boolean = false;
+
+  private constructor() {}
+
+  public static getInstance(): Database {
+    if (!Database.instance) {
+      Database.instance = new Database();
+    }
+    return Database.instance;
   }
-  
-  private initializeData() {
+
+  public async initialize(): Promise<void> {
+    if (this.initialized) return;
+    
     try {
-      // Use the initialization utility to load data from the JSON file
-      // This will also check localStorage first
-      const data = initializeData();
-      
+      const data = await initializeDatabase() as DatabaseData;
       if (data) {
-        this.data = data;
+        this.users = data.users;
+        this.siteConfig = data.siteConfig;
+        this.errorMessages = data.errorMessages;
+        this.initialized = true;
       } else {
-        // Fallback to sample data if initializing from JSON fails
-        this.data = SAMPLE_DATA;
-        // Store it in localStorage for future use
-        localStorage.setItem('groomsmenData', JSON.stringify(this.data));
+        console.error('Failed to initialize database');
       }
     } catch (error) {
-      console.error('Error initializing data:', error);
-      // Fallback to sample data if there's an error
-      this.data = SAMPLE_DATA;
+      console.error('Error initializing database:', error);
     }
+  }
+
+  public getUsers(): User[] {
+    return this.users;
+  }
+
+  public getUserByPassword(password: string): User | null {
+    return this.users.find((user) => user.password === password) || null;
+  }
+
+  public getSiteConfig(): SiteConfig {
+    return this.siteConfig;
+  }
+
+  public getErrorMessages(): string[] {
+    return this.errorMessages;
+  }
+}
+
+class DBService {
+  private database: Database;
+  
+  constructor() {
+    this.database = Database.getInstance();
+    // Initialize the database when the service is created
+    this.database.initialize();
   }
   
   // Get all users with their questions
   getAllUsers(): User[] {
-    try {
-      return this.data.users || [];
-    } catch (error) {
-      console.error('Error getting users:', error);
-      return [];
-    }
+    return this.database.getUsers();
   }
   
   // Get a single user by password
   getUserByPassword(password: string): User | null {
-    try {
-      const user = this.data.users.find((u: User) => u.password === password);
-      return user || null;
-    } catch (error) {
-      console.error('Error getting user by password:', error);
-      return null;
-    }
+    return this.database.getUserByPassword(password);
   }
   
   // Get site configuration
   getSiteConfig(): SiteConfig {
-    try {
-      return this.data.siteConfig || {};
-    } catch (error) {
-      console.error('Error getting site config:', error);
-      return {};
-    }
+    return this.database.getSiteConfig();
   }
   
   // Get error messages
   getErrorMessages(): string[] {
-    try {
-      return this.data.errorMessages || [];
-    } catch (error) {
-      console.error('Error getting error messages:', error);
-      return [];
-    }
+    return this.database.getErrorMessages();
   }
 }
 
+// Export a singleton instance
 export default new DBService(); 

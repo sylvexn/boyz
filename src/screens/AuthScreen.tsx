@@ -3,12 +3,9 @@ import { useApp } from '../context/AppContext';
 import GradientText from '../textanimations/GradientText/GradientText';
 import Aurora from '../backgrounds/Aurora/Aurora';
 import ClickSpark from '../animations/ClickSpark/ClickSpark';
-import TiltedCard from '../components/TiltedCard/TiltedCard';
 import FadeContent from '../animations/FadeContent/FadeContent';
 import MetaBalls from '../animations/MetaBalls/MetaBalls';
-
-// Image for loading screen - using SVG instead of PNG
-const loadingImagePath = '/images/titlecard.svg';
+import GlitchText from '../textanimations/GlitchText/GlitchText';
 
 const AuthScreen: React.FC = () => {
   const [password, setPassword] = useState('');
@@ -75,18 +72,8 @@ const AuthScreen: React.FC = () => {
             </div>
             
             {isLoading ? (
-              <div style={{ textAlign: 'center', padding: '2rem' }}>
+              <div style={{ textAlign: 'center', padding: '2rem', minHeight: '200px' }}>
                 <div style={{ marginBottom: '1rem' }}>verifying credentials...</div>
-                <TiltedCard
-                  imageSrc={loadingImagePath}
-                  altText="Loading"
-                  containerHeight="150px"
-                  rotateAmplitude={10}
-                  scaleOnHover={1.05}
-                  showMobileWarning={false}
-                  showTooltip={false}
-                  captionText="processing"
-                />
               </div>
             ) : (
               <form onSubmit={handleSubmit}>

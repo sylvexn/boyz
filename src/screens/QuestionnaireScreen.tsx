@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import DecryptedText from '../textanimations/DecryptedText/DecryptedText';
 import ClickSpark from '../animations/ClickSpark/ClickSpark';
@@ -14,11 +14,32 @@ const QuestionnaireScreen: React.FC = () => {
   const [isCorrect, setIsCorrect] = useState(false);
   const [questionVisible, setQuestionVisible] = useState(true);
   const [showWrongFuzz, setShowWrongFuzz] = useState(false);
+  const [randomizedOptions, setRandomizedOptions] = useState<string[]>([]);
   
-  // Reset animation when question index changes
+  // Memoize the current question to avoid recreating it
+  const currentQuestion = useMemo(() => {
+    if (!currentUser || !currentUser.questions[currentQuestionIndex]) return null;
+    return currentUser.questions[currentQuestionIndex];
+  }, [currentUser, currentQuestionIndex]);
+  
+  // When the question changes, randomize the options once and store them
   useEffect(() => {
+    if (!currentQuestion) return;
+    
+    const optionsArray = [
+      currentQuestion.correctAnswer, 
+      ...currentQuestion.wrongAnswers
+    ];
+    
+    // Shuffle the array
+    const shuffled = [...optionsArray].sort(() => Math.random() - 0.5);
+    setRandomizedOptions(shuffled);
+    
+    // Reset animation states
     setQuestionVisible(false);
     setShowWrongFuzz(false);
+    setSelectedAnswer(null);
+    setShowFeedback(false);
     
     // Small delay before showing new question to ensure animation resets
     const timer = setTimeout(() => {
@@ -26,20 +47,13 @@ const QuestionnaireScreen: React.FC = () => {
     }, 300);
     
     return () => clearTimeout(timer);
-  }, [currentQuestionIndex]);
+  }, [currentQuestionIndex, currentQuestion]);
 
-  if (!currentUser) return null;
+  if (!currentUser || !currentQuestion) return null;
 
-  const currentQuestion = currentUser.questions[currentQuestionIndex];
   const progressText = siteConfig.progressLabel
-    .replace('[current]', (currentQuestionIndex + 1).toString())
-    .replace('[total]', currentUser.questions.length.toString());
-
-  // Combine correct answer and wrong answers for display
-  const allOptions = [
-    currentQuestion.correctAnswer, 
-    ...currentQuestion.wrongAnswers
-  ].sort(() => Math.random() - 0.5); // Randomize options order
+    .replace('[CURRENT]', (currentQuestionIndex + 1).toString())
+    .replace('[TOTAL]', currentUser.questions.length.toString());
 
   const handleAnswerClick = (answer: string) => {
     setSelectedAnswer(answer);
@@ -56,15 +70,11 @@ const QuestionnaireScreen: React.FC = () => {
       // Show feedback for longer (1200ms) before going back to question 1
       setTimeout(() => {
         answerQuestion(answer);
-        setShowFeedback(false);
-        setSelectedAnswer(null);
       }, 1200);
     } else {
       // Show feedback for 800ms before proceeding to next question
       setTimeout(() => {
         answerQuestion(answer);
-        setShowFeedback(false);
-        setSelectedAnswer(null);
       }, 800);
     }
   };
@@ -116,7 +126,7 @@ const QuestionnaireScreen: React.FC = () => {
               duration={800}
               key={`fade-${currentQuestionIndex}`}
             >
-              <div style={{ marginBottom: '2rem' }}>
+              <div>
                 <p 
                   style={{ 
                     fontSize: '0.9rem', 
@@ -159,7 +169,7 @@ const QuestionnaireScreen: React.FC = () => {
                   )}
                 </div>
                 
-                <div 
+                <div
                   style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -169,7 +179,7 @@ const QuestionnaireScreen: React.FC = () => {
                     opacity: questionVisible ? 1 : 0
                   }}
                 >
-                  {questionVisible && allOptions.map((option, index) => (
+                  {questionVisible && randomizedOptions.map((option, index) => (
                     <ClickSpark
                       key={`option-${currentQuestionIndex}-${index}`}
                       sparkColor="#00ff7f"

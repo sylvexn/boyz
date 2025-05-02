@@ -36,6 +36,7 @@ interface AppState {
   background: BackgroundType;
   showLoginError: boolean;
   errorMessage: string;
+  isAppReady: boolean;
 }
 
 interface AppContextType {
@@ -63,10 +64,10 @@ const defaultErrorMessages = [
 
 // Default site config if not in DB
 const defaultSiteConfig: SiteConfig = {
-  successMessage: "welcome [name], [title]! you've successfully completed the security check.",
+  successMessage: "welcome [title] [name]! you've successfully completed the security check.",
   restartButtonText: "restart",
   nextButtonText: "next",
-  progressLabel: "question"
+  progressLabel: "question [CURRENT]/[TOTAL]"
 };
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -82,46 +83,61 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     isLoading: false,
     background: 'letterglitch',
     showLoginError: false,
-    errorMessage: ''
+    errorMessage: '',
+    isAppReady: false
   });
 
   // Load data on component mount
   useEffect(() => {
-    try {
-      // Get all users with their questions
-      const dbUsers = dbService.getAllUsers();
-      
-      if (dbUsers && dbUsers.length > 0) {
-        // Map DB users to ensure questions is not undefined
-        const formattedUsers: User[] = dbUsers.map(dbUser => ({
-          id: dbUser.id,
-          name: dbUser.name,
-          nickname: dbUser.nickname,
-          title: dbUser.title,
-          password: dbUser.password,
-          questions: dbUser.questions || []
+    const loadData = async () => {
+      try {
+        // Get all users with their questions
+        const dbUsers = dbService.getAllUsers();
+        
+        if (dbUsers && dbUsers.length > 0) {
+          // Map DB users to ensure questions is not undefined
+          const formattedUsers: User[] = dbUsers.map(dbUser => ({
+            id: dbUser.id,
+            name: dbUser.name,
+            nickname: dbUser.nickname,
+            title: dbUser.title,
+            password: dbUser.password,
+            questions: dbUser.questions || []
+          }));
+          setUsers(formattedUsers);
+        }
+        
+        // Get site config
+        const dbConfig = dbService.getSiteConfig();
+        if (Object.keys(dbConfig).length > 0) {
+          setSiteConfig({
+            ...defaultSiteConfig,
+            ...dbConfig
+          });
+        }
+        
+        // Get error messages
+        const dbErrorMessages = dbService.getErrorMessages();
+        if (dbErrorMessages.length > 0) {
+          setErrorMessages(dbErrorMessages);
+        }
+
+        // Mark app as ready
+        setState(prev => ({
+          ...prev,
+          isAppReady: true
         }));
-        setUsers(formattedUsers);
+      } catch (error) {
+        console.error('Failed to load data:', error);
+        // If loading fails, we'll use default values and still mark as ready
+        setState(prev => ({
+          ...prev,
+          isAppReady: true
+        }));
       }
-      
-      // Get site config
-      const dbConfig = dbService.getSiteConfig();
-      if (Object.keys(dbConfig).length > 0) {
-        setSiteConfig({
-          ...defaultSiteConfig,
-          ...dbConfig
-        });
-      }
-      
-      // Get error messages
-      const dbErrorMessages = dbService.getErrorMessages();
-      if (dbErrorMessages.length > 0) {
-        setErrorMessages(dbErrorMessages);
-      }
-    } catch (error) {
-      console.error('Failed to load data:', error);
-      // If loading fails, we'll use default values
-    }
+    };
+
+    loadData();
   }, []);
 
   const authenticate = async (password: string): Promise<boolean> => {
@@ -234,6 +250,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       background
     }));
   };
+
+  // Show loading indicator until data is loaded
+  if (!state.isAppReady) {
+    return <div className="loading">Loading...</div>;
+  }
 
   return (
     <AppContext.Provider

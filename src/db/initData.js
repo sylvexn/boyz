@@ -1,18 +1,15 @@
-// This file loads and transforms the groomsmen-data.json file 
-// to initialize our application data in a browser-compatible way
+// This file loads data from groomsmen-data.json for the application
+// It serves as a central place for initial data loading
 
-// Import the sample data directly - webpack will bundle this
-import groomsmenData from '../groomsmen-data.json';
+import groomsmenData from './groomsmen-data.json';
 
-// Transform the data to match the format expected by our application
-export function initializeData() {
+/**
+ * Initializes the database by loading data from the groomsmen-data.json file
+ * No localStorage usage - data is loaded fresh on each app start
+ * @returns {Promise<{users: Array, siteConfig: Object, errorMessages: Array}>} The transformed data object
+ */
+export async function initializeDatabase() {
   try {
-    // Check if data is already initialized
-    const existingData = localStorage.getItem('groomsmenData');
-    if (existingData) {
-      return JSON.parse(existingData);
-    }
-
     // Transform the data structure from the JSON file format
     // to the format our application expects
     const transformedData = {
@@ -33,13 +30,15 @@ export function initializeData() {
       siteConfig: groomsmenData.siteConfig
     };
 
-    // Store in localStorage
-    localStorage.setItem('groomsmenData', JSON.stringify(transformedData));
     return transformedData;
   } catch (error) {
-    console.error('Error initializing data:', error);
+    console.error('Error initializing database:', error);
     return null;
   }
 }
 
-export default initializeData; 
+// For backward compatibility
+export default function initializeData() {
+  console.warn('initializeData is deprecated, use initializeDatabase instead');
+  return initializeDatabase();
+} 
