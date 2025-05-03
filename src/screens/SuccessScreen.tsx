@@ -94,7 +94,7 @@ const SuccessScreen: React.FC = () => {
             </div>
             
             <div style={{ textAlign: 'center' }}>
-              <p>thanks for being a part of this special day.</p>
+              <p>welcome to the wedding party.</p>
               <p style={{ marginTop: '1rem' }}>more details to come for the bachelor party and more.</p>
               {isTestUser && (
                 <p style={{ marginTop: '1rem', color: '#00ff7f' }}>
